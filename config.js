@@ -1,7 +1,7 @@
 window.DEJI_CONFIG = {
-  dataMode: "local",
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  dataMode: "supabase",
+  supabaseUrl: "https://rqgpwjobyszlwpxliqgs.supabase.co",
+  supabaseAnonKey: "sb_publishable_ZWjo_E4MuZaxTGpXwK-ifg_L8Liy-qJ",
   supabaseTable: "opening_tasks",
   supabaseAutoSyncMs: 30000,
 };
