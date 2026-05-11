@@ -78,6 +78,15 @@ function asDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function getToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function toDateLabel(input) {
+  return `${input.getMonth() + 1}/${input.getDate()}`;
+}
+
 function daysBetween(start, end) {
   return Math.round((end.getTime() - start.getTime()) / 86400000);
 }
@@ -100,7 +109,7 @@ function inferPhase(endDate) {
 function inferStatus(task) {
   if (task.manual_status) return task.manual_status;
   if (!task.end_date) return "待补日期";
-  const today = asDate(seedPayload.today);
+  const today = getToday();
   const start = asDate(task.start_date || task.end_date);
   const end = asDate(task.end_date);
   if (!today || !start || !end) return "未开始";
@@ -272,9 +281,9 @@ const taskStore = {
 
 function formatDateRange() {
   const opening = asDate(seedPayload.openingDay);
-  const today = asDate(seedPayload.today);
+  const today = getToday();
   if (!opening || !today) return "--";
-  return `${today.getMonth() + 1}/${today.getDate()} - ${opening.getMonth() + 1}/${opening.getDate()}`;
+  return `${toDateLabel(today)} - ${toDateLabel(opening)}`;
 }
 
 function buildDerived(tasks) {
@@ -282,7 +291,7 @@ function buildDerived(tasks) {
   const overdue = tasks.filter((task) => inferStatus(task) === "已逾期");
   const dueThisWeek = tasks.filter((task) => {
     const end = asDate(task.end_date);
-    const today = asDate(seedPayload.today);
+    const today = getToday();
     return end && today && daysBetween(today, end) >= 0 && daysBetween(today, end) <= 7;
   });
   const highRisk = tasks.filter((task) => inferRisk(task) === "高");
@@ -328,7 +337,10 @@ function buildDerived(tasks) {
 }
 
 function renderHero() {
-  els.countdownDays.textContent = seedPayload.countdownDays;
+  const opening = asDate(seedPayload.openingDay);
+  const today = getToday();
+  const countdownDays = opening && today ? daysBetween(today, opening) : "--";
+  els.countdownDays.textContent = countdownDays;
   els.dateRangeText.textContent = `项目周期 ${seedPayload.projectSpanDays} 天 ｜ 当前窗口 ${formatDateRange()}`;
 }
 
@@ -640,6 +652,17 @@ async function init() {
   rerender();
 }
 
+function scheduleMidnightRefresh() {
+  const now = new Date();
+  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const delay = nextMidnight.getTime() - now.getTime();
+  window.setTimeout(() => {
+    renderHero();
+    rerender();
+    scheduleMidnightRefresh();
+  }, delay);
+}
+
 function bindEvents() {
   els.departmentFilter.addEventListener("input", (event) => {
     state.filters.department = event.target.value;
@@ -681,3 +704,4 @@ function bindEvents() {
 
 bindEvents();
 init();
+scheduleMidnightRefresh();
