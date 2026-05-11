@@ -291,9 +291,14 @@ async function deleteSupabaseTask(id) {
     headers: {
       apikey: supabaseAnonKey,
       Authorization: `Bearer ${supabaseAnonKey}`,
+      Prefer: "return=representation",
     },
   });
   if (!response.ok) throw new Error(`Supabase delete failed: ${response.status}`);
+  const rows = await response.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error("云端未返回删除结果，请先确认 Supabase 已创建 delete policy。");
+  }
 }
 
 const taskStore = {
