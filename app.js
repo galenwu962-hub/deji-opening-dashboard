@@ -6,7 +6,7 @@ const departments = [
 
 const runtimeConfig = window.DEJI_CONFIG || {};
 const sharedStateRowId = "product-change-dashboard-state-v1";
-const sharedDataRevision = "2026-06-hot-actual-v1";
+const sharedDataRevision = "2026-06-hot-actual-v2";
 
 const defaultProductChanges = [
   {
@@ -15,38 +15,38 @@ const defaultProductChanges = [
     type: "optimize",
     name: "168-188 牛排",
     time: "2026-06-28",
-    reviewer: "研发 / 市场 / 营运 / 厨政 / 采购",
-    opinion: "整点",
+    reviewer: "",
+    opinion: "",
     followUp: true,
   },
   {
     id: "hot-launch-20260610-longgang-wanlinghui",
     department: "hot",
     type: "launch",
-    name: "照烧鸡腿、烧汁牛腩排",
+    name: "照烧鸡腿、烧汁牛腩排/委外物料",
     time: "2026-06-10",
-    reviewer: "部分门店：龙岗、万菱汇",
-    opinion: "委外物料",
+    reviewer: "部分门店（龙岗、万菱汇）",
+    opinion: "",
     followUp: true,
   },
   {
     id: "hot-launch-20260629-shenye-ccp",
     department: "hot",
     type: "launch",
-    name: "照烧鸡腿、烧汁牛腩排",
+    name: "照烧鸡腿、烧汁牛腩排/委外物料",
     time: "2026-06-29",
-    reviewer: "部分门店：深业、CCP",
-    opinion: "委外物料",
+    reviewer: "部分门店（深业、CCP）",
+    opinion: "",
     followUp: true,
   },
   {
     id: "hot-launch-20260629-tomato-meat-sauce",
     department: "hot",
     type: "launch",
-    name: "番茄肉酱",
+    name: "番茄肉酱/委外物料",
     time: "2026-06-29",
-    reviewer: "单店测试",
-    opinion: "委外物料",
+    reviewer: "总部店测试",
+    opinion: "",
     followUp: true,
   },
   {
@@ -134,7 +134,7 @@ let productChanges = defaultProductChanges.map((item) => ({ ...item }));
 let reviewDepartments = defaultReviewDepartments.map((item) => ({ ...item }));
 let storageMode = "local";
 const reviewStorageKey = "product-change-dashboard-review-opinions-v1";
-const productStorageKey = "product-change-dashboard-product-changes-v1";
+const productStorageKey = "product-change-dashboard-product-changes-v2";
 
 const typeText = {
   launch: "上架",
@@ -283,7 +283,7 @@ function renderDepartmentPanels() {
                   <div class="product-edit-grid" data-product-id="${item.id}">
                     <div class="product-edit-head">
                       <label class="product-field product-field-name">
-                        <span>菜品名称</span>
+                        <span>菜品</span>
                         <input class="product-input product-name-input" data-product-field="name" value="${escapeHtml(item.name)}" aria-label="${department.name}${typeText[item.type]}菜品名称" />
                       </label>
                       <button class="delete-product-button" type="button" data-delete-product="${item.id}" aria-label="删除${item.name}">删除</button>
@@ -300,8 +300,8 @@ function renderDepartmentPanels() {
                         <input class="product-input" data-product-field="time" type="${getTimeInputType(item.time)}" value="${toDateTimeLocalValue(item.time)}" aria-label="${item.name}执行时间" />
                       </label>
                       <label class="product-field product-reviewer-field">
-                        <span>执行范围 / 会审部门</span>
-                        <input class="product-input" data-product-field="reviewer" value="${escapeHtml(item.reviewer)}" aria-label="${item.name}执行范围或会审部门" />
+                        <span>类别补充 / 执行范围</span>
+                        <input class="product-input" data-product-field="reviewer" value="${escapeHtml(item.reviewer)}" aria-label="${item.name}类别补充或执行范围" />
                       </label>
                     </div>
                     <label class="product-field">
