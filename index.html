@@ -3,174 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>南京德基新店开业总控驾驶舱</title>
+    <title>产品上新与下架会审仪表盘</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="shell">
-      <header class="hero">
+    <main class="dashboard-shell">
+      <header class="topbar">
         <div>
-          <p class="eyebrow">Deji Opening Command Center</p>
-          <h1>南京德基新店开业总控驾驶舱</h1>
-          <p class="hero-copy">
-            把原始总控表升级成可筛选、可预警、可汇报的项目管理面板。
-          </p>
-          <div class="source-row">
-            <span id="sourceBadge" class="source-badge">--</span>
-            <span id="lastSyncText" class="source-copy">--</span>
-          </div>
-        </div>
-        <div class="countdown-card">
-          <span>距离开业</span>
-          <strong id="countdownDays">--</strong>
-          <small id="dateRangeText">--</small>
+          <p class="eyebrow">Product Change Review Board</p>
+          <h1>产品上新与下架会审仪表盘</h1>
         </div>
       </header>
 
-      <section class="panel kpi-grid" id="kpiGrid"></section>
-
-      <section class="content-grid">
-        <section class="panel panel-main">
-          <div class="section-head">
-            <div>
-              <p class="section-label">Timeline</p>
-              <h2>关键节奏与任务波峰</h2>
-            </div>
+      <section class="control-strip" aria-label="筛选控制">
+        <div class="segmented-control" id="typeFilter" role="group" aria-label="上下架筛选">
+          <button class="active" type="button" data-type="all">全部</button>
+          <button type="button" data-type="launch">上新</button>
+          <button type="button" data-type="retire">下架</button>
+        </div>
+        <div class="toolbar-actions">
+          <div class="legend">
+            <span><i class="dot hot"></i>热厨</span>
+            <span><i class="dot drink"></i>水吧</span>
+            <span><i class="dot bake"></i>烘焙</span>
           </div>
-          <div class="timeline-card">
-            <div id="phaseChips" class="phase-chips"></div>
-            <div id="timelineBars" class="timeline-bars"></div>
-          </div>
-        </section>
-
-        <aside class="panel panel-side">
-          <div class="section-head">
-            <div>
-              <p class="section-label">Risk Radar</p>
-              <h2>高风险与待补数据</h2>
-            </div>
-          </div>
-          <div id="riskList" class="risk-list"></div>
-        </aside>
+          <button class="export-button" id="exportPdfButton" type="button">一键导出 PDF</button>
+        </div>
       </section>
 
-      <section class="content-grid">
-        <section class="panel panel-main">
-          <div class="section-head">
-            <div>
-              <p class="section-label">Control Board</p>
-              <h2>任务总览与状态维护</h2>
-            </div>
-            <div class="filters">
-              <button id="addTaskButton" class="action-button" type="button">新增任务</button>
-              <button id="seedCloudButton" class="ghost-button" type="button" hidden>初始化云端任务</button>
-              <button id="syncCloudButton" class="ghost-button" type="button" hidden>立即同步</button>
-              <select id="departmentFilter">
-                <option value="">全部部门</option>
-              </select>
-              <select id="phaseFilter">
-                <option value="">全部阶段</option>
-              </select>
-              <select id="riskFilter">
-                <option value="">全部风险</option>
-                <option value="高">高风险</option>
-                <option value="中">中风险</option>
-                <option value="低">低风险</option>
-              </select>
-              <select id="statusFilter">
-                <option value="">全部状态</option>
-                <option value="未开始">未开始</option>
-                <option value="进行中">进行中</option>
-                <option value="临近开始">临近开始</option>
-                <option value="已完成">已完成</option>
-                <option value="已逾期">已逾期</option>
-                <option value="待补日期">待补日期</option>
-              </select>
-              <input id="keywordInput" type="search" placeholder="搜索任务/负责人/说明" />
-            </div>
-          </div>
-          <div id="taskBoard" class="task-board"></div>
-        </section>
+      <section class="department-grid" id="departmentGrid" aria-label="部门上下架列表"></section>
 
-        <aside class="panel panel-side">
-          <div class="section-head">
-            <div>
-              <p class="section-label">Department Load</p>
-              <h2>部门任务分布</h2>
-            </div>
-          </div>
-          <div id="departmentChart" class="department-chart"></div>
-          <div class="section-head compact">
-            <div>
-              <p class="section-label">Data Hygiene</p>
-              <h2>待补日期事项</h2>
-            </div>
-          </div>
-          <div id="missingDateList" class="missing-list"></div>
-        </aside>
+      <section class="review-section">
+        <div class="section-heading">
+          <p class="eyebrow">Review Decisions</p>
+          <h2>会审部门意见</h2>
+          <span class="save-state" id="saveState">内容自动保存</span>
+        </div>
+        <div class="review-grid" id="reviewGrid"></div>
       </section>
-    </div>
+    </main>
 
-    <dialog id="taskModal" class="task-modal">
-      <form id="taskForm" class="task-form">
-        <div class="modal-head">
-          <div>
-            <p class="section-label">Task Editor</p>
-            <h2 id="modalTitle">新增任务</h2>
-          </div>
-          <button id="modalCloseButton" class="ghost-button" type="button">关闭</button>
-        </div>
-        <div class="form-grid">
-          <label><span>任务名称</span><input name="title" required /></label>
-          <label><span>主责部门</span>
-            <select name="department">
-              <option value="">请选择部门</option>
-              <option value="运营部">运营部</option>
-              <option value="采购部">采购部</option>
-              <option value="训练部">训练部</option>
-              <option value="厨政部">厨政部</option>
-              <option value="市场部">市场部</option>
-              <option value="研发部">研发部</option>
-              <option value="人资部">人资部</option>
-              <option value="食安部">食安部</option>
-            </select>
-          </label>
-          <label><span>主要负责人</span><input name="owner" /></label>
-          <label><span>协同部门和人员</span><input name="collaborators" /></label>
-          <label><span>审核人</span><input name="reviewer" /></label>
-          <label><span>日期标签</span><input name="date_label" placeholder="如 2026-06-13 ~ 2026-06-15" /></label>
-          <label><span>开始日期</span><input name="start_date" type="date" /></label>
-          <label><span>截止日期</span><input name="end_date" type="date" /></label>
-          <label><span>阶段</span><input name="phase" placeholder="可留空自动判断" /></label>
-          <label><span>任务状态</span>
-            <select name="status_hint">
-              <option value="未开始">未开始</option>
-              <option value="进行中">进行中</option>
-              <option value="临近开始">临近开始</option>
-              <option value="已完成">已完成</option>
-              <option value="已逾期">已逾期</option>
-              <option value="待补日期">待补日期</option>
-            </select>
-          </label>
-          <label><span>风险等级</span>
-            <select name="risk_level">
-              <option value="高">高</option>
-              <option value="中">中</option>
-              <option value="低">低</option>
-            </select>
-          </label>
-          <label class="full"><span>任务说明</span><textarea name="description" rows="3"></textarea></label>
-          <label class="full"><span>备注</span><textarea name="notes" rows="3"></textarea></label>
-        </div>
-        <div class="modal-actions">
-          <button id="deleteTaskButton" class="ghost-button danger-button" type="button" hidden>删除任务</button>
-          <button id="modalCancelButton" class="ghost-button" type="button">取消</button>
-          <button id="saveTaskButton" class="action-button" type="submit">保存任务</button>
-        </div>
-      </form>
-    </dialog>
-
-    <script src="./data/dashboard-data.js"></script>
     <script src="./config.js"></script>
     <script src="./app.js"></script>
   </body>
