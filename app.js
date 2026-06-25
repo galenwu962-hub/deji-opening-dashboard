@@ -172,6 +172,7 @@ const departmentGrid = document.querySelector("#departmentGrid");
 const reviewGrid = document.querySelector("#reviewGrid");
 const typeFilter = document.querySelector("#typeFilter");
 const exportPdfButton = document.querySelector("#exportPdfButton");
+const exportMarkdownButton = document.querySelector("#exportMarkdownButton");
 const saveState = document.querySelector("#saveState");
 
 function formatDateTime(value) {
@@ -790,11 +791,108 @@ function createPdfBlob(jpegDataUrl, imageWidth, imageHeight) {
   return new Blob(chunks, { type: "application/pdf" });
 }
 
+function getFullDate(value) {
+  if (!value || value === "待定") return "待定";
+  const dateValue = String(value).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? dateValue : String(value);
+}
+
+function normalizeMarkdownText(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function buildDashboardMarkdown() {
+  const products = getCurrentProductChanges()
+    .slice()
+    .sort((first, second) => {
+      const typeDiff = typeOrder.indexOf(first.type) - typeOrder.indexOf(second.type);
+      if (typeDiff) return typeDiff;
+      const departmentDiff =
+        departments.findIndex((department) => department.id === first.department) -
+        departments.findIndex((department) => department.id === second.department);
+      if (departmentDiff) return departmentDiff;
+      return getFullDate(first.time).localeCompare(getFullDate(second.time));
+    });
+  const reviews = getCurrentReviews();
+  const exportedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+  const lines = [
+    "# 产品调整会审仪表盘",
+    "",
+    `导出时间：${exportedAt}`,
+    `数据模式：${storageMode === "shared" ? "线上共享" : "本地保存"}`,
+    "",
+    "## 给 AI 的任务",
+    "",
+    "请基于以下产品上新、下架、调优事项和会审部门意见，提炼一份会议议程。议程需包含：需要决策的问题、需要追踪的风险、各部门待确认事项、建议讨论顺序和会后待办。",
+    "",
+    "## 事项汇总",
+    "",
+  ];
+
+  typeOrder.forEach((type) => {
+    const typeItems = products.filter((item) => item.type === type);
+    lines.push(`### ${typeText[type]}（${typeItems.length}项）`, "");
+
+    if (!typeItems.length) {
+      lines.push("暂无事项。", "");
+      return;
+    }
+
+    typeItems.forEach((item, index) => {
+      const department = departmentById[item.department]?.name || item.department || "未指定";
+      const scope = normalizeMarkdownText(item.reviewer) || "全部门店";
+      const note = normalizeMarkdownText(item.opinion) || "待补充执行说明";
+      lines.push(`#### ${index + 1}. ${item.name || "未命名事项"}`);
+      lines.push(`- 部门：${department}`);
+      lines.push(`- 事项类别：${typeText[item.type] || item.type}`);
+      lines.push(`- 执行时间：${getFullDate(item.time)}`);
+      lines.push(`- 类别补充 / 执行范围：${scope}`);
+      lines.push("- 执行说明：");
+      lines.push(note);
+      lines.push("");
+    });
+  });
+
+  lines.push("## 会审部门意见", "");
+  reviews.forEach((item) => {
+    lines.push(`### ${item.title}`);
+    lines.push(`- 状态：${item.status}`);
+    lines.push("- 意见：");
+    lines.push(normalizeMarkdownText(item.text) || "待补充意见");
+    lines.push("");
+  });
+
+  return `${lines.join("\n").trim()}\n`;
+}
+
+function downloadTextFile(filename, content, type = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportDashboardMarkdown() {
+  saveProductDrafts();
+  saveReviewDrafts();
+  const date = new Date().toISOString().slice(0, 10);
+  downloadTextFile(`产品调整会审仪表盘-${date}.md`, buildDashboardMarkdown(), "text/markdown;charset=utf-8");
+  setSaveState("MD 已生成");
+}
+
 async function exportDashboardPdf() {
   saveProductDrafts();
   saveReviewDrafts();
   exportPdfButton.disabled = true;
-  exportPdfButton.textContent = "正在生成 PDF";
+  exportPdfButton.textContent = "正在生成";
   document.querySelector(".dashboard-shell").classList.add("is-exporting");
 
   try {
@@ -829,7 +927,7 @@ async function exportDashboardPdf() {
   } finally {
     document.querySelector(".dashboard-shell").classList.remove("is-exporting");
     exportPdfButton.disabled = false;
-    exportPdfButton.textContent = "一键导出 PDF";
+    exportPdfButton.textContent = "导出 PDF";
   }
 }
 
@@ -887,6 +985,7 @@ departmentGrid.addEventListener("click", (event) => {
 });
 
 exportPdfButton.addEventListener("click", exportDashboardPdf);
+exportMarkdownButton.addEventListener("click", exportDashboardMarkdown);
 
 async function initDashboard() {
   renderDepartmentPanels();

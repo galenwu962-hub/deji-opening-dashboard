@@ -234,6 +234,11 @@ h2 {
   gap: 18px;
 }
 
+.export-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -280,6 +285,17 @@ h2 {
 
 .export-button:hover {
   background: var(--brand-blue-deep);
+}
+
+.export-button-secondary {
+  border: 1px solid var(--brand-blue);
+  background: #fff;
+  color: var(--brand-blue);
+  box-shadow: none;
+}
+
+.export-button-secondary:hover {
+  background: var(--brand-blue-soft);
 }
 
 .department-grid {
@@ -770,6 +786,11 @@ h2 {
 
   .export-button {
     width: 100%;
+  }
+
+  .export-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   .product-card {
