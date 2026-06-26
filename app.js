@@ -267,7 +267,7 @@ function renderProductCard(item) {
 
   return `
     <article class="product-card ${item.type}">
-      <div class="change-badge">${typeLabel[item.type]}</div>
+      <div class="change-badge">${department.name}</div>
       <div class="product-edit-grid" data-product-id="${item.id}">
         <div class="product-edit-head">
           <label class="product-field product-field-name">
@@ -358,9 +358,11 @@ function renderReviewHighlights() {
     .map(
       (item) => `
         <article class="review-card" data-review-id="${item.id}">
-          <strong>${item.title}</strong>
+          <div class="review-card-head">
+            <strong>${item.title}</strong>
+            <span class="review-status ${item.tone}">${item.status}</span>
+          </div>
           <textarea class="review-editor" data-review-editor="${item.id}" aria-label="${item.title}会审意见">${savedReviews[item.id] ?? item.text}</textarea>
-          <span class="review-status ${item.tone}">${item.status}</span>
         </article>
       `,
     )
