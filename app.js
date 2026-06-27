@@ -1051,6 +1051,26 @@ async function recoverFromLocalCache() {
   }
 }
 
+async function publishLocalCacheToCloud() {
+  if (!recoveryMode || !hasSharedSync || !applyLocalRecoveryState("正在发布本机缓存到云端")) return false;
+  storageMode = "shared";
+  setActiveType("all");
+  renderDepartmentPanels();
+  renderReviewHighlights();
+
+  const saved = await saveSharedState();
+  if (saved) {
+    sessionStorage.removeItem(recoveryPinnedKey);
+    setSaveState("已发布到云端，常规链接可查看");
+    return true;
+  }
+
+  storageMode = "local";
+  sessionStorage.setItem(recoveryPinnedKey, "true");
+  setSaveState("本机内容已显示，云端发布失败");
+  return false;
+}
+
 function setupLocalRecovery() {
   if (!recoveryMode || !exportActions) return;
   const recoveryButton = document.createElement("button");
@@ -1159,6 +1179,7 @@ async function initDashboard() {
   if (hasSharedSync) setSaveState("正在连接云端数据");
   renderDepartmentPanels();
   renderReviewHighlights();
+  if (await publishLocalCacheToCloud()) return;
   if (hasSharedSync) {
     syncFromCloud().catch((error) => console.error("初始化云端数据失败", error));
   }
