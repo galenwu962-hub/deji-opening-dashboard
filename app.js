@@ -1218,12 +1218,20 @@ clearAllButton.addEventListener("click", requestClearAll);
 setupLocalRecovery();
 
 async function initDashboard() {
-  if (hasSharedSync) {
-    productChanges = [];
-    reviewDepartments = defaultReviewDepartments.map((item) => ({ ...item, text: "" }));
-    if (!recoveryMode) storageMode = "fallback";
+  if (hasSharedSync && !recoveryMode) {
+    try {
+      await loadFallbackState();
+    } catch (error) {
+      console.error("首屏兜底数据加载失败", error);
+      productChanges = [];
+      reviewDepartments = defaultReviewDepartments.map((item) => ({ ...item, text: "" }));
+      storageMode = "fallback";
+      setSaveState("兜底数据加载失败");
+    }
+  } else if (hasSharedSync) {
     setSaveState("正在连接云端数据");
   }
+
   renderDepartmentPanels();
   renderReviewHighlights();
   if (await publishLocalCacheToCloud()) return;
