@@ -170,6 +170,7 @@ function collectRenderedProductChanges() {
 }
 
 function persistProductChanges(nextProducts, statusText = "已保存") {
+  localEditVersion += 1;
   productChanges = nextProducts;
   if (productChanges.length) {
     explicitClearAt = null;
@@ -329,6 +330,7 @@ function saveProductDrafts() {
 }
 
 function saveReviewDrafts() {
+  localEditVersion += 1;
   const nextReviews = {};
   document.querySelectorAll("[data-review-editor]").forEach((editor) => {
     nextReviews[editor.dataset.reviewEditor] = editor.value.trim();
@@ -520,7 +522,7 @@ async function loadSharedState() {
     const requiresDataMigration = applySharedState(state);
     storageMode = "shared";
     sessionStorage.removeItem(recoveryPinnedKey);
-    setSaveState(requiresDataMigration ? "正在清理旧云端数据" : state ? "阿里云共享模式" : "正在初始化云端数据");
+    setSaveState(requiresDataMigration ? "正在清理旧云端数据" : state ? "线上共享模式" : "正在初始化云端数据");
 
     if (!state || requiresDataMigration) await saveSharedState();
     return true;
@@ -558,7 +560,7 @@ function getSharedPayload(options = {}) {
     clearedAt: explicitClearAt || undefined,
     baseClearedAt: lastKnownClearedAt || undefined,
     restoreIntent: Boolean(options.restoreIntent || isRestoringAfterClear),
-    clientRevision: "reliable-save-queue-v1",
+    clientRevision: "reliable-save-queue-v2",
     updatedAt: new Date().toISOString(),
   };
 }
