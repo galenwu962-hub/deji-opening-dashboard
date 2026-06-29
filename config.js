@@ -1,5 +1,5 @@
 window.DEJI_CONFIG = {
-  dataMode: "aliyun",
-  sharedApiUrl: "https://deji-daard-sync-okenkxrymw.cn-hangzhou.fcapp.run/state",
+  dataMode: "netlify",
+  sharedApiUrl: "https://deji-product-board-sync.netlify.app/state",
   sharedAutoSyncMs: 15000,
 };
