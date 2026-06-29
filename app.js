@@ -173,7 +173,6 @@ function persistProductChanges(nextProducts, statusText = "已保存") {
   productChanges = nextProducts;
   if (productChanges.length) {
     explicitClearAt = null;
-    localStorage.removeItem(clearIntentStorageKey);
   }
 
   if (storageMode === "shared") {
@@ -548,6 +547,7 @@ async function loadSharedState() {
 
 function getSharedPayload(options = {}) {
   const products = getCurrentProductChanges();
+  const isRestoringAfterClear = products.length > 0 && Boolean(lastKnownClearedAt);
   return {
     products,
     reviews: getCurrentReviews(),
@@ -555,8 +555,8 @@ function getSharedPayload(options = {}) {
     emptyIntent: products.length === 0 && Boolean(explicitClearAt),
     clearedAt: explicitClearAt || undefined,
     baseClearedAt: lastKnownClearedAt || undefined,
-    restoreIntent: Boolean(options.restoreIntent),
-    clientRevision: "no-default-stale-v1",
+    restoreIntent: Boolean(options.restoreIntent || isRestoringAfterClear),
+    clientRevision: "restore-after-clear-v1",
     updatedAt: new Date().toISOString(),
   };
 }
@@ -589,11 +589,32 @@ async function saveSharedState(options = {}) {
       body: JSON.stringify(getSharedPayload(options)),
     });
     if (response.status === 409) {
-      setSaveState("云端已清空，旧页面写入已拦截");
-      await loadSharedState();
+      const conflict = await response.json().catch(() => ({}));
+      const hasProductsToRestore = getCurrentProductChanges().length > 0;
+      if (hasProductsToRestore && conflict.clearedAt) {
+        lastKnownClearedAt = conflict.clearedAt;
+        const retryResponse = await fetch(sharedApiUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(getSharedPayload({ restoreIntent: true })),
+        });
+        if (retryResponse.ok) {
+          lastKnownClearedAt = null;
+          localStorage.removeItem(clearIntentStorageKey);
+          setSaveState("已同步到云端");
+          return true;
+        }
+      }
+      setSaveState("云端已清空，请刷新后再写入");
       return false;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (getCurrentProductChanges().length > 0) {
+      lastKnownClearedAt = null;
+      localStorage.removeItem(clearIntentStorageKey);
+    }
     setSaveState("已同步到云端");
     return true;
   } catch (error) {
