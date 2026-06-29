@@ -10,91 +10,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const recoveryMode = urlParams.get("recoverLocal") === "1";
 const recoveryPinnedKey = "product-change-dashboard-local-recovery-pinned-v1";
 const sharedStateRowId = "product-change-dashboard-state-v1";
-const sharedDataRevision = "2026-06-hot-drink-actual-v3";
+const sharedDataRevision = "2026-06-empty-reset-v1";
 const sharedFallbackUrl = "./data/shared-state-fallback.json";
 
-const defaultProductChanges = [
-  {
-    id: "hot-optimize-20260628-steak",
-    department: "hot",
-    type: "optimize",
-    name: "168-188 牛排",
-    time: "2026-06-28",
-    reviewer: "",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "hot-launch-20260610-longgang-wanlinghui",
-    department: "hot",
-    type: "launch",
-    name: "照烧鸡腿、烧汁牛腩排/委外物料",
-    time: "2026-06-10",
-    reviewer: "部分门店（龙岗、万菱汇）",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "hot-launch-20260629-shenye-ccp",
-    department: "hot",
-    type: "launch",
-    name: "照烧鸡腿、烧汁牛腩排/委外物料",
-    time: "2026-06-29",
-    reviewer: "部分门店（深业、CCP）",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "hot-launch-20260629-tomato-meat-sauce",
-    department: "hot",
-    type: "launch",
-    name: "番茄肉酱/委外物料",
-    time: "2026-06-29",
-    reviewer: "总部店测试",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "drink-launch-20260630-jasmine-mango-kombucha",
-    department: "drink",
-    type: "launch",
-    name: "茉莉青芒康普茶/配餐神器",
-    time: "2026-06-30",
-    reviewer: "",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "drink-optimize-20260630-mung-bean-sparkling-water",
-    department: "drink",
-    type: "optimize",
-    name: "绿豆汽泡水/配餐神器",
-    time: "2026-06-30",
-    reviewer: "",
-    opinion: "",
-    followUp: true,
-  },
-  {
-    id: "bake-launch-1",
-    department: "bake",
-    type: "launch",
-    name: "开心果覆盆子可颂",
-    time: "2026-06-03 08:00",
-    reviewer: "研发部 / 门店训练",
-    opinion: "同意上新。需补充切面标准图，训练部同步制作陈列动作卡。",
-    followUp: true,
-  },
-  {
-    id: "bake-retire-1",
-    department: "bake",
-    type: "retire",
-    name: "榛子巧克力软欧",
-    time: "2026-06-07 20:30",
-    reviewer: "财务部 / 运营部",
-    opinion: "同意下架。销量低于保留线，建议释放陈列位给高转化新品。",
-    followUp: false,
-  },
-];
+const defaultProductChanges = [];
 
 const defaultReviewDepartments = [
   {
@@ -521,19 +440,17 @@ function applyLocalRecoveryState(statusText) {
 
 function applySharedState(state) {
   const requiresDataMigration = Boolean(state && state.dataRevision !== sharedDataRevision);
-  const actualDepartments = new Set(["hot", "drink"]);
-  const incomingProducts = requiresDataMigration
-    ? [
-        ...defaultProductChanges.filter((item) => actualDepartments.has(item.department)),
-        ...(state.products || []).filter((item) => !actualDepartments.has(item.department)),
-      ]
-    : state?.products;
+  const incomingProducts = requiresDataMigration ? [] : state?.products;
+  const incomingReviews = requiresDataMigration
+    ? defaultReviewDepartments.map((item) => ({ ...item, text: "" }))
+    : state?.reviews;
+  const resetClearAt = requiresDataMigration ? new Date().toISOString() : null;
 
   productChanges = state
     ? (incomingProducts || []).map((item) => ({ ...item }))
     : defaultProductChanges.map((item) => ({ ...item }));
-  reviewDepartments = mergeById(defaultReviewDepartments, state?.reviews);
-  explicitClearAt = state?.emptyIntent ? state.clearedAt || new Date().toISOString() : null;
+  reviewDepartments = mergeById(defaultReviewDepartments, incomingReviews);
+  explicitClearAt = resetClearAt || (state?.emptyIntent ? state.clearedAt || new Date().toISOString() : null);
   lastKnownClearedAt = explicitClearAt || state?.clearedAt || lastKnownClearedAt;
   if (explicitClearAt) localStorage.setItem(clearIntentStorageKey, explicitClearAt);
   else localStorage.removeItem(clearIntentStorageKey);
@@ -563,13 +480,7 @@ async function loadFallbackState() {
 }
 
 function shouldKeepCurrentFallbackState(state) {
-  return (
-    storageMode === "fallback" &&
-    productChanges.length > 0 &&
-    Array.isArray(state?.products) &&
-    state.products.length === 0 &&
-    state.emptyIntent !== true
-  );
+  return false;
 }
 
 async function fetchSharedState(sharedApiUrl) {
@@ -608,7 +519,7 @@ async function loadSharedState() {
     const requiresDataMigration = applySharedState(state);
     storageMode = "shared";
     sessionStorage.removeItem(recoveryPinnedKey);
-    setSaveState(requiresDataMigration ? "正在更新热厨数据" : state ? "阿里云共享模式" : "正在初始化云端数据");
+    setSaveState(requiresDataMigration ? "正在清理旧云端数据" : state ? "阿里云共享模式" : "正在初始化云端数据");
 
     if (!state || requiresDataMigration) await saveSharedState();
     return true;
@@ -645,7 +556,7 @@ function getSharedPayload(options = {}) {
     clearedAt: explicitClearAt || undefined,
     baseClearedAt: lastKnownClearedAt || undefined,
     restoreIntent: Boolean(options.restoreIntent),
-    clientRevision: "clear-guard-v1",
+    clientRevision: "no-default-stale-v1",
     updatedAt: new Date().toISOString(),
   };
 }
