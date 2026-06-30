@@ -60,6 +60,10 @@ let storageMode = "local";
 let localEditVersion = 0;
 let explicitClearAt = null;
 let lastKnownClearedAt = null;
+let baseRevision = 0;
+// 删除墓碑：记录本会话删除过的产品 id，提交时一并发给服务端，
+// 服务端持久保存，防止其它旧页面把已删项目重新合并回来。
+const pendingDeletedProductIds = new Map();
 const reviewStorageKey = "product-change-dashboard-review-opinions-v1";
 const productStorageKey = "product-change-dashboard-product-changes-v3";
 const clearIntentStorageKey = "product-change-dashboard-clear-intent-v1";
@@ -382,6 +386,7 @@ function addProductChange(departmentId, forcedType) {
 
 function deleteProductChange(productId) {
   saveProductDrafts();
+  pendingDeletedProductIds.set(productId, new Date().toISOString());
   persistProductChanges(
     getCurrentProductChanges().filter((item) => item.id !== productId),
     "已删除",
@@ -480,6 +485,7 @@ function applySharedState(state) {
     ? (incomingProducts || []).map((item) => ({ ...item }))
     : defaultProductChanges.map((item) => ({ ...item }));
   reviewDepartments = mergeById(defaultReviewDepartments, incomingReviews);
+  if (state && Number.isFinite(Number(state.revision))) baseRevision = Number(state.revision);
   explicitClearAt = resetClearAt || (state?.emptyIntent ? state.clearedAt || new Date().toISOString() : null);
   lastKnownClearedAt = explicitClearAt || state?.clearedAt || lastKnownClearedAt;
   if (explicitClearAt) localStorage.setItem(clearIntentStorageKey, explicitClearAt);
@@ -590,7 +596,9 @@ function getSharedPayload(options = {}) {
     clearedAt: explicitClearAt || undefined,
     baseClearedAt: lastKnownClearedAt || undefined,
     restoreIntent: Boolean(options.restoreIntent || isRestoringAfterClear),
-    clientRevision: "reliable-save-queue-v2",
+    deletedProductIds: Object.fromEntries(pendingDeletedProductIds),
+    baseRevision,
+    clientRevision: "server-merge-v3",
     updatedAt: new Date().toISOString(),
   };
 }
@@ -628,6 +636,7 @@ async function saveSharedState(options = {}) {
     const { sharedApiUrl } = runtimeConfig;
     if (!sharedApiUrl) throw new Error("缺少阿里云共享接口配置");
     const payload = getSharedPayload(options);
+    const sentDeletedIds = Object.keys(payload.deletedProductIds || {});
     const response = await fetch(sharedApiUrl, {
       method: "PUT",
       headers: {
@@ -659,7 +668,13 @@ async function saveSharedState(options = {}) {
       return false;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    rememberSharedState(payload);
+    const serverState = await response.json().catch(() => null);
+    // 服务端已持久保存这批删除墓碑，本地不必再重复提交
+    sentDeletedIds.forEach((id) => pendingDeletedProductIds.delete(id));
+    if (serverState && Number.isFinite(Number(serverState.revision))) {
+      baseRevision = Number(serverState.revision);
+    }
+    rememberSharedState(serverState && serverState.dataRevision === sharedDataRevision ? serverState : payload);
     if (getCurrentProductChanges().length > 0) {
       lastKnownClearedAt = null;
       localStorage.removeItem(clearIntentStorageKey);

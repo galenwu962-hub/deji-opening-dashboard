@@ -38,8 +38,8 @@
     }
   ],
   "dataRevision": "2026-06-empty-reset-v1",
-  "emptyIntent": true,
-  "clearedAt": "2026-06-29T00:00:00.000Z",
+  "emptyIntent": false,
+  "revision": 0,
   "updatedAt": "2026-06-29T00:00:00.000Z",
   "source": "empty-fallback"
 }
